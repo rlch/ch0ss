@@ -46,8 +46,8 @@ def parse_dataset(location, max_n=None):
                 szr = serializer.Serializer(None)
                 for move in game.mainline_moves():
                     if max_n is not None and n >= max_n:
-                        X, y = reshape(X, y, n)
-                        return X, y
+                        X_train, X_test, y_train, y_test = process(X, y, n)
+                        return X_train, X_test, y_train, y_test
                     n += 1
                     szr.board.push(move)
                     X.append(szr.serialize())
@@ -56,15 +56,21 @@ def parse_dataset(location, max_n=None):
                 current_pgn = ''
             else:
                 current_pgn += f' {pgn_line}'
-        X, y = reshape(X, y, n)
-        return X, y
+        X_train, X_test, y_train, y_test = process(X, y, n)
+        return X_train, X_test, y_train, y_test
 
 
-def reshape(X, y, n):
+def process(X, y, n, split=0.2):
     """
-    Ensures the shape of X and y is correct; and is typed as an np.array.
+    Shuffles, splits and ensures the shape of X and y is correct.
     """
-    return np.array(X).reshape((n, 6, 8, 8)), np.array(y)
+    random = np.arange(n)
+    np.random.shuffle(random)
+    X, y = np.array(X).reshape((n, 6, 8, 8))[random], np.array(y)[random]
+
+    # split into train, test
+    cutoff = int(n * split)
+    return X[cutoff:], X[:cutoff], y[cutoff:], y[:cutoff]
 
 
 if __name__ == '__main__':
@@ -75,8 +81,10 @@ if __name__ == '__main__':
         print('Dataset file location not found. Pass as an argument:')
         print('\t> python parse_dataset.py ./dataset/raw/dataset.pgn\n')
     else:
-        X, y = parse_dataset(sys.argv[1], 10000)
+        X_train, X_test, y_train, y_test = parse_dataset(sys.argv[1], 10000)
 
         save_loc = './dataset/processed/dataset.npz'
-        np.savez(save_loc, X, y)
+        np.savez(save_loc,
+                 X_train=X_train, X_test=X_test,
+                 y_train=y_train, y_test=y_test)
         print(f'Saved dataset in {save_loc}')

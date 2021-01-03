@@ -42,7 +42,7 @@ class Serializer(object):
         """
 
         # Serialized array
-        ser = np.zeros((6, 64))
+        ser = np.zeros((6, 64), np.int8)
 
         for i in range(64):
             # Obtain number representation of piece on ith square.
