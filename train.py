@@ -32,6 +32,8 @@ def load_dataset(location, split=0.2):
 
 def build():
     model = models.Sequential()
+    model.add(layers.Conv2D(16, (2, 2), input_shape=(8, 8, 6)))
+    model.add(layers.Conv2D(32, (2, 2)))
     model.add(layers.Flatten())
     model.add(layers.Dense(256, activation='relu'))
     model.add(layers.Dense(128, activation='relu'))
@@ -54,4 +56,5 @@ if __name__ == '__main__':
         print('Dataset must be an npz file. See parse_dataset.py')
     else:
         X_train, X_test, y_train, y_test = load_dataset(sys.argv[1])
-        print(len(X_train), len(X_test), len(y_train), len(y_test))
+        model = build()
+        

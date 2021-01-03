@@ -11,14 +11,14 @@ import numpy as np
 def parse_dataset(location, max_n=None):
     """
     Parses each move from every game in the dataset as an observation  / example.
-    Each observation is a 6x8x8 `np.array` as dictated in `serializer.py`.
+    Each observation is a `6⨯8⨯8` `np.array` as dictated in `serializer.py`.
 
     Args:
         `location`: Dataset file location.
         `max_n`: Maximum number of observations.
 
     Returns:
-        `X, y`: `n`x6x8x8 design matrix, `n`x1 response
+        `X, y`: `6⨯8⨯8` design matrix, `n⨯1` response
     """
 
     X, y = [], []
