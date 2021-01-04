@@ -26,7 +26,7 @@ class Serializer(object):
         else:
             self.board = board
 
-    def serialize(self) -> np.array:
+    def serialize(self):
         """
         Serializes the chess board into a 6x8x8 `np.array`. A new game will look as follows:
 
@@ -55,5 +55,8 @@ class Serializer(object):
         # Numpy reshapes from left to right, top to bottom, so must flip on x-axis.
         return ser.reshape((6, 8, 8))[:, :, ::-1]
 
-    def legal_moves(self) -> list:
+    def legal_moves(self):
+        """
+        Uses python-chess to return a list of legal moves.
+        """
         return list(self.board.legal_moves)
