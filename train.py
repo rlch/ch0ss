@@ -28,8 +28,11 @@ def load_dataset(location):
     """
 
     with np.load(location) as data:
+        # shift the channel to index 0 to comply with `channels_last`
+        # def shift(x): return np.moveaxis(x, 1, -1)
         X_train, X_test = data['X_train'], data['X_test']
         y_train, y_test = data['y_train'], data['y_test']
+
         train_data = tf.data.Dataset.from_tensor_slices(
             (X_train, y_train)).batch(BATCH_SIZE)
         test_data = tf.data.Dataset.from_tensor_slices(
@@ -41,29 +44,53 @@ def load_dataset(location):
 def build():
     """
     Compiles a CNN to use as a value function.
-    Uses a tanh activation function for the final layer to restrict output to [-1, 1].
 
     Returns:
         `tf.keras.Model` object
     """
 
     model = models.Sequential()
-    model.add(layers.Conv2D(16, (2, 2), input_shape=(
-        BATCH_SIZE, 6, 8, 8), data_format='channels_first'))
-    model.add(layers.Conv2D(32, (2, 2)))
-    model.add(layers.Flatten())
+    model.add(layers.InputLayer((6, 8, 8)))
+    # model.add(layers.Conv2D(16, (1, 1), data_format='channels_first'))
+    # model.add(layers.BatchNormalization())
+    # model.add(layers.Dropout(0.1))
+    # model.add(layers.Conv2D(64, (1, 1), data_format='channels_first'))
+    # model.add(layers.BatchNormalization())
+    # model.add(layers.Dropout(0.1))
+    # model.add(layers.Conv2D(32, (1, 1), data_format='channels_first'))
+    # model.add(layers.BatchNormalization())
+    # model.add(layers.Dropout(0.1))
+    # model.add(layers.Conv2D(32, (1, 1), data_format='channels_first'))
+    # model.add(layers.BatchNormalization())
+    # model.add(layers.Dropout(0.1))
+    model.add(layers.Flatten(data_format='channels_first'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dense(512, activation='relu'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.1))
     model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(256, activation='relu'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.1))
     model.add(layers.Dense(128, activation='relu'))
-    model.add(layers.Dense(1, activation='tanh'))
-    # tanh gives output in [-1, 1].
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(128, activation='relu'))
+    model.add(layers.BatchNormalization())
+    model.add(layers.Dropout(0.1))
+    model.add(layers.Dense(1, activation='sigmoid'))
 
-    model.compile(loss='mean_squared_error',
-                  optimizer=optimizers.Adam(0.001),
-                  metrics=['accuracy'])
+    model.compile(loss='binary_crossentropy',
+                  optimizer=optimizers.Adam(0.005),
+                  metrics=['mean_absolute_error'])
+
+    model.summary()
     return model
 
 
-def train(model, train_data, test_data):
+def train(model: tf.keras.Model, train_data, test_data):
     """
     Trains a compiled Keras model.
 
@@ -97,14 +124,16 @@ def evaluate(model, stats, test_data):
         History + statistics of model fitting process.
     """
 
-    plt.plot(stats.history['accuracy'], label='accuracy')
-    plt.plot(stats.history['val_accuracy'], label='val_accuracy')
+    plt.plot(stats.history['mean_absolute_error'], label='mean_absolute_error')
+    plt.plot(stats.history['val_mean_absolute_error'], 
+             label='val_mean_absolute_error')
     plt.xlabel('Epoch')
-    plt.ylabel('Accuracy')
+    plt.ylabel('Mean absolute error')
     plt.legend(loc='lower right')
+    plt.show()
 
     test_loss, test_acc = model.evaluate(test_data, verbose=1)
-    print(f'Test loss: {test_loss}, Test accuracy: {test_acc}')
+    print(f'Test loss: {test_loss}, Test MAE: {test_acc}')
 
 
 if __name__ == '__main__':

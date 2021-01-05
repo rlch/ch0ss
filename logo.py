@@ -1,4 +1,5 @@
 def show():
+    print('\033[H\033[J', end='') # clear screen
     print('''
           oooo          .oooo.
           `888         d8P'`Y8b

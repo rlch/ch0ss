@@ -6,6 +6,7 @@ import chess
 import chess.pgn
 import serializer
 import numpy as np
+from collections import defaultdict
 
 
 def parse_dataset(location, max_n=None):
@@ -18,12 +19,19 @@ def parse_dataset(location, max_n=None):
         `max_n`:        Maximum number of observations.
 
     Returns:
-        `X, y`:         `6⨯8⨯8` design matrix, `n⨯1` response
+        `X_train`:      `6⨯8⨯8` training design matrix
+        `y_train`:      `n⨯1` training response
+        `X_test`:       `6⨯8⨯8` test design matrix
+        `y_test`:       `n⨯1` test response
+        `g`:            number of games in dataset 
     """
 
-    X, y = [], []
+    data = defaultdict(list)
 
-    result_map = {'1/2-1/2': 0,  '1-0': 1, '0-1': -1}
+    # We only want to include wins.
+    # https://arxiv.org/pdf/1711.09667.pdf shows there's to advantage
+    # to including draws in the training set.
+    result_map = {'1-0': 1, '0-1': 0}
     g = 0  # Game number
     n = 0  # Observation number
 
@@ -35,7 +43,7 @@ def parse_dataset(location, max_n=None):
             pgn_line = pgn_line.strip()
             if not pgn_line and current_pgn:
                 game = chess.pgn.read_game(io.StringIO(current_pgn))
-                
+
                 # Apparently there's a special token "*" which indicates
                 # an unknown or otherwise unavailable result. I found this
                 # out the hard way :)
@@ -53,27 +61,37 @@ def parse_dataset(location, max_n=None):
                 szr = serializer.Serializer(None)
                 for move in game.mainline_moves():
                     if max_n is not None and n >= max_n:
-                        X_train, X_test, y_train, y_test = process(X, y, n)
+                        X_train, X_test, y_train, y_test = process(data)
                         return X_train, X_test, y_train, y_test, g
                     n += 1
                     szr.board.push(move)
-                    X.append(szr.serialize())
-                    y.append(result)
+
+                    data[szr.board.fen().split()[0]].append(result)
 
                 current_pgn = ''
             else:
                 current_pgn += f' {pgn_line}'
-        X_train, X_test, y_train, y_test = process(X, y, n)
+        X_train, X_test, y_train, y_test = process(data)
         return X_train, X_test, y_train, y_test, g
 
 
-def process(X, y, n, split=0.2):
+def process(data, split=0.2):
     """
     Shuffles, splits and ensures the shape of X and y is correct.
     """
+    print('Serializing moves...')
+
+    fens = list(data.keys())
+    results = list(data.values())
+    n = len(fens)
+
     random = np.arange(n)
     np.random.shuffle(random)
-    X, y = np.array(X).reshape((n, 6, 8, 8))[random], np.array(y)[random]
+    szr = serializer.Serializer(None)
+    X = np.array(list(map(szr.serialize_fen, fens)), dtype=np.int8).reshape((n, 6, 8, 8))[
+        random]
+    y = np.array(list(map(np.mean, results)), dtype=np.float)[random]
+    assert(len(X) == len(y))
 
     # split into train, test
     cutoff = int(n * split)
@@ -88,7 +106,8 @@ if __name__ == '__main__':
         print('Dataset file location not found. Pass as an argument:')
         print('\t> python parse_dataset.py ./dataset/raw/dataset.pgn\n')
     else:
-        X_train, X_test, y_train, y_test, g = parse_dataset(sys.argv[1], 1000000)
+        X_train, X_test, y_train, y_test, g = parse_dataset(
+            sys.argv[1], 1500000)
 
         save_loc = f'./dataset/processed/dataset_{g}.npz'
         np.savez(save_loc,

@@ -53,7 +53,15 @@ class Serializer(object):
                 ser[abs(pn)-1, i] = np.sign(pn)
 
         # Numpy reshapes from left to right, top to bottom, so must flip on x-axis.
-        return ser.reshape((6, 8, 8))[:, :, ::-1]
+        return np.flip(ser.reshape((6, 8, 8)), 1)
+
+    def serialize_fen(self, fen):
+        """
+        Serializes the provided FEN.
+        """
+        self.board.set_board_fen(fen)
+        return self.serialize()
+
 
     def legal_moves(self):
         """
