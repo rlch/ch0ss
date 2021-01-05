@@ -1,5 +1,4 @@
 import chess
-import tensorflow as tf
 import serializer as szr
 import numpy as np
 
@@ -21,8 +20,8 @@ class Minimax(object):
         `location`: location of value function model.
     """
 
-    def __init__(self, location):
-        self.model: tf.keras.Model = tf.keras.models.load_model(location)
+    def __init__(self, model):
+        self.model = model
 
     def search(self, board: chess.Board, depth, side, alpha=-2, beta=2):
         """
@@ -47,11 +46,11 @@ class Minimax(object):
         if board.is_game_over():
             res = board.result()
             if res == '0-1':
-                return -1
+                return 0
             elif res == '1-0':
                 return 1
             else:
-                return 0
+                return 0.5
 
         if side:
             max_score = -2

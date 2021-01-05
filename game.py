@@ -4,6 +4,7 @@ import chess.pgn
 import serializer
 import logo
 import numpy as np
+import tensorflow as tf
 import os
 import io
 import sys
@@ -28,7 +29,8 @@ def display_board(board, side):
 
 def play(location, option):
 
-    minimax = Minimax(location)
+    model: tf.keras.Model = tf.keras.models.load_model(location)
+    minimax = Minimax(model)
 
     logo.show()
     print('\n\n')
@@ -51,10 +53,14 @@ def play(location, option):
         print('\n\n')
 
         display_board(szr.board, side)
+        score = model.predict(np.expand_dims(szr.serialize(), 0))
+        print(f'ch0ss evaluation: {score}')
 
         if szr.board.turn == side:
             uci = None
             while not szr.board.is_legal(uci):
+                if uci is not None:
+                    print('Illegal move')
                 try:
                     uci = chess.Move.from_uci(input('Type your move:\n > '))
                 except ValueError:
@@ -66,7 +72,7 @@ def play(location, option):
                 print('Illegal move.')
         else:
             print('ch0ss is thinking...')
-            move = minimax.search(szr.board, 5, side)
+            move = minimax.search(szr.board, 3, side)
             szr.board.push(move[1])
 
 
